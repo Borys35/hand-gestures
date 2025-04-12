@@ -32,6 +32,16 @@ while cap.isOpened():
         for hand_landmarks in result.multi_hand_landmarks:
             mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
+            thumb_tip = hand_landmarks.landmark[4]
+            index_tip = hand_landmarks.landmark[8]
+
+            distance = ((thumb_tip.x - index_tip.x) ** 2 + (thumb_tip.y - index_tip.y) ** 2) ** 0.5
+            print("distance", distance)
+            if distance < 0.05:
+                cv.putText(frame, 'Pinch', (50, 50), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            else:
+                cv.putText(frame, 'Open Hand', (50, 50), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
     cv.imshow('frame', frame)
 
     if cv.waitKey(1) & 0xFF == ord('q'):
