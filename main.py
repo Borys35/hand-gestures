@@ -21,7 +21,10 @@ opts = [
     'Resume/Pause',
     'Next Song',
     'Prev Song',
-    'Mute/Unmute'
+    'Mute/Unmute',
+    'Volume Up',
+    'Volume Down',
+    'Quit App'
 ]
 
 
@@ -57,7 +60,31 @@ def select():
     global select_time, opt, already_selected
     now = time.time()
     if now - select_time > 1 and not already_selected:
-        print("select!!!")
+        # 0 - 'Resume/Pause',
+        # 1 - 'Next Song',
+        # 2 - 'Prev Song',
+        # 3 - 'Mute/Unmute'
+        # 4 - 'Volume Up'
+        # 5 - 'Volume Down'
+        # Last - 'Quit App'
+        if opt == 0:
+            pyautogui.press('playpause')
+        elif opt == 1:
+            pyautogui.press('nexttrack')
+        elif opt == 2:
+            pyautogui.press('prevtrack')
+        elif opt == 3:
+            pyautogui.press('volumemute')
+        elif opt == 4:
+            for i in range(5):
+                pyautogui.press('volumeup')
+        elif opt == 5:
+            for i in range(5):
+                pyautogui.press('volumedown')
+        elif opt == len(opts) - 1:
+            raise SystemExit
+        else:
+            print("Unknown command")
         select_time = now
         already_selected = True
 
@@ -104,7 +131,7 @@ while cap.isOpened():
             ring_dist = distance((ring_tip.x, ring_tip.y), (ring_mcp.x, ring_mcp.y))
             pinky_dist = distance((pinky_tip.x, pinky_tip.y), (pinky_mcp.x, pinky_mcp.y))
 
-            print(index_dist, middle_dist, ring_dist, pinky_dist)
+            # print(index_dist, middle_dist, ring_dist, pinky_dist)
             min_select_dist = 0.05
             if (index_dist < min_select_dist and middle_dist < min_select_dist
                     and ring_dist < min_select_dist and pinky_dist < min_select_dist):
