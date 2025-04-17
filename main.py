@@ -1,8 +1,8 @@
-import cv2
 import cv2 as cv
 import mediapipe as mp
 import numpy as np
 import time
+import pyautogui
 
 # mediapipe hands
 mp_hands = mp.solutions.hands
@@ -14,13 +14,15 @@ path = 'resources/hand.MP4'
 url = 'http://192.168.100.62:4747/video'
 cap = cv.VideoCapture(url)
 
-cur_time = time.time()
+swipe_time = select_time = time.time()
+already_selected = False
 prev_pos = (0, 0)
 opt = 0
 opts = [
-    'YouTube',
-    'Discord',
-    'CLion'
+    'Resume/Pause',
+    'Next Song',
+    'Prev Song',
+    'Mute/Unmute'
 ]
 
 
@@ -36,9 +38,9 @@ def swipe(_dire=0):
     if _dire == 0:
         return
 
-    global cur_time, opt
+    global swipe_time, opt
     now = time.time()
-    if now - cur_time > 1:
+    if now - swipe_time > 0.25:
         if _dire == 1:
             if opt < len(opts) - 1:
                 opt += 1
@@ -49,7 +51,16 @@ def swipe(_dire=0):
                 opt -= 1
             else:
                 opt = len(opts) - 1
-        cur_time = now
+        swipe_time = now
+
+
+def select():
+    global select_time, opt, already_selected
+    now = time.time()
+    if now - select_time > 1 and not already_selected:
+        print("select!!!")
+        select_time = now
+        already_selected = True
 
 
 while cap.isOpened():
@@ -64,28 +75,47 @@ while cap.isOpened():
     frame = cv.resize(frame, (480, 640))
     frame = frame[100:560, 30:440]
 
+    cv.putText(frame, 'Music Controller', (25, 50), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
     cv.putText(frame, ''.join([str(opt + 1), ': ', opts[opt]]), (25, 100), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
     rgb = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
     result = hands.process(rgb)
 
+
     if result.multi_hand_landmarks:
         for hand_landmarks in result.multi_hand_landmarks:
             mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
+            # detecting swipes
             hand_anchor = hand_landmarks.landmark[8]
 
             pos = (hand_anchor.x, hand_anchor.y)
             if distance(prev_pos, pos) > 0.1:
                 dire = direction(prev_pos, pos)
                 swipe(dire)
-                cv.putText(frame, 'Swipe Trigger', (25, 50), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
             prev_pos = pos
 
-    cv.imshow('frame', frame)
+            # selecting an option
+            index_tip, index_mcp = hand_landmarks.landmark[8], hand_landmarks.landmark[5]
+            middle_tip, middle_mcp = hand_landmarks.landmark[12], hand_landmarks.landmark[9]
+            ring_tip, ring_mcp = hand_landmarks.landmark[16], hand_landmarks.landmark[13]
+            pinky_tip, pinky_mcp = hand_landmarks.landmark[20], hand_landmarks.landmark[17]
 
-    # print("time", cur_time)
-    # cur_time = time.time()
+            index_dist = distance((index_tip.x, index_tip.y), (index_mcp.x, index_mcp.y))
+            middle_dist = distance((middle_tip.x, middle_tip.y), (middle_mcp.x, middle_mcp.y))
+            ring_dist = distance((ring_tip.x, ring_tip.y), (ring_mcp.x, ring_mcp.y))
+            pinky_dist = distance((pinky_tip.x, pinky_tip.y), (pinky_mcp.x, pinky_mcp.y))
+
+            print(index_dist, middle_dist, ring_dist, pinky_dist)
+            min_select_dist = 0.05
+            if (index_dist < min_select_dist and middle_dist < min_select_dist
+                    and ring_dist < min_select_dist and pinky_dist < min_select_dist):
+                select()
+            else:
+                already_selected = False
+
+    cv.imshow('Frame', frame)
 
     if cv.waitKey(1) & 0xFF == ord('q'):
         break
